@@ -21,6 +21,9 @@ object Publish {
   lazy val settings = Seq(
     crossPaths := true,
     pomExtra := kamonPomExtra,
+    // To publish, put these credentials in ~/.ivy2/credentials
+    //credentials += Credentials("Sonatype Nexus Repository Manager", "publish-nexus.agiledigital.com.au", "****", "****"),
+    credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
     publishTo := {
       val nexus = "http://publish-nexus.agiledigital.com.au/nexus/"
       if (version.value.trim.endsWith("SNAPSHOT")) {
