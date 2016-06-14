@@ -17,7 +17,7 @@ package kamon.play.instrumentation
 
 import akka.util.ByteString
 import kamon.Kamon.tracer
-import kamon.play.PlayExtension
+import kamon.play.{ KamonFilter, PlayExtension }
 import kamon.trace._
 import kamon.util.SameThreadExecutionContext
 import org.aspectj.lang.ProceedingJoinPoint
@@ -29,27 +29,7 @@ import play.api.mvc.{ EssentialFilter, _ }
 @Aspect
 class RequestInstrumentation {
 
-  private val filter: EssentialFilter = new EssentialFilter {
-    override def apply(next: EssentialAction): EssentialAction = new EssentialAction {
-      override def apply(requestHeader: RequestHeader): Accumulator[ByteString, Result] = {
-
-        def onResult(result: Result): Result = {
-          Tracer.currentContext.collect { ctx ⇒
-            ctx.finish()
-            PlayExtension.httpServerMetrics.recordResponse(ctx.name, result.header.status.toString)
-            if (PlayExtension.includeTraceToken) result.withHeaders(PlayExtension.traceTokenHeaderName -> ctx.token)
-            else result
-
-          } getOrElse result
-        }
-
-        //override the current trace name
-        Tracer.currentContext.rename(PlayExtension.generateTraceName(requestHeader))
-        val nextAccumulator = next.apply(requestHeader)
-        nextAccumulator.map(onResult)(SameThreadExecutionContext)
-      }
-    }
-  }
+  private lazy val filter: EssentialFilter = new KamonFilter()
 
   @DeclareMixin("play.api.mvc.RequestHeader+")
   def mixinContextAwareToRequestHeader: TraceContextAware = TraceContextAware.default
